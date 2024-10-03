@@ -1,0 +1,15 @@
+body {
+    background-color: #f0f0f0;
+    color: #000000;
+    display: flex;
+    place-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+}
