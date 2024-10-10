@@ -7,15 +7,19 @@ import * as Comlink from 'comlink'
 const worker = new Worker(new URL('./workers/mupdf.worker.ts', import.meta.url), { type: 'module' })
 const mupdfWorker = Comlink.wrap<MupdfWorker>(worker)
 
+const buttonClassName = "justify-center w-full h-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 inline-flex items-center";
+
 function App() {
   const [count, setCount] = useState(0);
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfFileName, setPdfFileName] = useState("");
   const [workerInitialized, setWorkerInitialized] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [dpi, setDpi] = useState(150);
+
+  const supportDpi = [72, 96, 150, 300, 600, 1200, 2400];
 
   useEffect(() => {
-    // Listen for the worker initialization message
     const handleWorkerMessage = (event: MessageEvent) => {
       if (event.data.info === 'MUPDF_LOADED') {
         setWorkerInitialized(true)
@@ -74,6 +78,7 @@ function App() {
 
 
   const processPdf = async (arrayBuffer: ArrayBuffer) => {
+    mupdfWorker.setScale(dpi / 72);
     setCount(0);
     setProgress(0);
     setPdfUrl("");
@@ -98,6 +103,22 @@ function App() {
           <h1 className="mb-4 text-3xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white text-center">{(!pdfUrl && count != 0) ? `已为您处理 ${progress}/${count} 页` : "在线双面 PDF 制作工具"}</h1>
           <p className="mb-6 text-lg font-normal text-gray-500 lg:text-xl sm:px-16 xl:px-48 dark:text-gray-400">所有文件均在本地处理，不需要连接网络。</p>
         </div>
+        <div className='group justify-center items-center'>
+          <button id="dropdownHoverButton" data-dropdown-toggle="dropdownHover" data-dropdown-trigger="click"
+            className="w-64 justify-center text-gray bg-gray-100 hover:bg-gray-200 ring-4 focus:outline-none ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-gray-700 dark:hover:bg-gray-600" type="button">当前DPI：{dpi} <svg className="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 4 4 4-4" />
+            </svg>
+          </button>
+          <div id="dropdownHover" className="w-64 absolute transition-opacity hidden opacity-0 z-10 group-hover:block group-hover:opacity-100 bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700">
+            <ul className="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownHoverButton">
+              {supportDpi.map((item, _) => (
+                <li key={item}>
+                  <a onClick={() => setDpi(item)} className="select-none cursor-pointer block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">{item} DPI ({(item / 2.54).toFixed(2)} DPC)</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
         <div className='flex flex-row space-x-5 w-full'>
           <div className='flex-1 w-full'>
             <label className="flex flex-col items-center justify-center h-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
@@ -120,11 +141,9 @@ function App() {
           </div>
           <div className='flex-initial w-fit items-center text-center justify-center'>{
             pdfUrl ?
-              <button
-                className="items-center justify-center text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-                onClick={handleDownload}>下载 PDF</button>
+              <button onClick={handleDownload} className={buttonClassName}>下载 PDF</button>
               :
-              <button disabled type="button" className="justify-center w-full h-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 inline-flex items-center">
+              <button disabled type="button" className={buttonClassName}>
                 <svg aria-hidden="true" role="status" className="w-4 h-4 me-3 text-white animate-spin hidden sm:inline" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB" />
                   <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor" />

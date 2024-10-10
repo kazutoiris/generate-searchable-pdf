@@ -5,6 +5,7 @@ export const MUPDF_LOADED = 'MUPDF_LOADED'
 
 export class MupdfWorker {
     private mupdf?: any
+    private scale?: Number
 
     constructor() {
         this.initializeMupdf()
@@ -14,10 +15,15 @@ export class MupdfWorker {
         try {
             const mupdfModule = await import("mupdf")
             this.mupdf = mupdfModule
+            this.scale = 1;
             postMessage({ "info": MUPDF_LOADED })
         } catch (error) {
             console.error('Failed to initialize MuPDF:', error)
         }
+    }
+
+    async setScale(scale: Number) {
+        this.scale = scale;
     }
 
     async processPdf(pdf: ArrayBuffer): Promise<string> {
@@ -27,7 +33,7 @@ export class MupdfWorker {
         postMessage({ "count": pageCount });
         for (let i = 0; i < pageCount; i++) {
             const page = doc.loadPage(i);
-            const img = page.toPixmap(this.mupdf.Matrix.scale(2, 2), this.mupdf.ColorSpace.DeviceRGB);
+            const img = page.toPixmap(this.mupdf.Matrix.scale(this.scale, this.scale), this.mupdf.ColorSpace.DeviceRGB);
             const page_obj = page.getObject()
             const image = doc.addImage(new this.mupdf.Image(img));
 
